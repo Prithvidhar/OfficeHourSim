@@ -51,12 +51,13 @@
  sem_t seats;
  pthread_mutex_t classCheck;
  pthread_cond_t join;
- pthread_cond_t leaveA;
- pthread_cond_t leaveB;
  pthread_cond_t leave;
- pthread_cond_t prof;
+ pthread_mutex_t btime;
+ pthread_cond_t breakTime;
+ pthread_cond_t pb;
  sem_t classA;
  sem_t classB;
+ //sem_t breakTime;
  static int passed = 1;
  static int first = 1;
  static int last = -1;
@@ -74,6 +75,7 @@ static int classa_inoffice;      /* Total numbers of students from class A curre
 static int classb_inoffice;      /* Total numbers of students from class B in the office */
 static int students_since_break = 0;
 static int nextType;
+//static int breakTime;
 
 
 
@@ -96,6 +98,7 @@ static int initialize(student_info *si, char *filename)
   classb_inoffice = 0;
   students_since_break = 0;
   nextType = -1;
+ // breakTime = 0;
 
   /* Initialize your synchronization variables (and 
    * other variables you might use) here
@@ -110,6 +113,7 @@ static int initialize(student_info *si, char *filename)
     sem_init(&seats, 0, 3);
     sem_init(&classA, 0, 1);
     sem_init(&classB, 0, 1);
+   // sem_init(&breakTime,0,0);
     pthread_mutex_init(&classCheck,NULL);
    
     
@@ -143,6 +147,7 @@ static void take_break()
 {
   printf("The professor is taking a break now.\n");
   sleep(5);
+  printf("Students in office: %d",students_in_office);
   assert( students_in_office == 0 );
   students_since_break = 0;
 }
@@ -162,7 +167,7 @@ void *professorthread(void *junk)
     pthread_mutex_lock(&classCheck);
 
     pthread_cond_wait(&join, &classCheck);
-    printf("Hello from professor");
+    printf("Hello from professor\n");
     if(classa_inoffice > 0 && nextType ==-1)
     {
       nextType = 0;
@@ -173,8 +178,13 @@ void *professorthread(void *junk)
     }
     if(students_since_break == 10)
     {
+      
+     // sem_wait(&breakTime);
+     
       printf("Hello break time!\n");
+      pthread_cond_wait(&breakTime, &classCheck);
       take_break();
+      pthread_cond_signal(&pb);
     }
     
       
@@ -238,8 +248,9 @@ void *professorthread(void *junk)
     
 
   
-    pthread_exit(NULL);
+    
   }
+  pthread_exit(NULL);
 }
 
 
@@ -249,6 +260,10 @@ void *professorthread(void *junk)
  */
 void classa_enter() 
 {
+  if(students_since_break>=10)
+ {
+   printf("PPOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n");
+ }
   
   //sem_getvalue(&classA, &val);
  // printf("Sem class A = %d\n", val);
@@ -261,34 +276,61 @@ void classa_enter()
   // sem_get
    sem_wait(&seats);
    
-   
+  
     
    //sem_wait(&classA);
    //passed = 1;
+  
    pthread_mutex_lock(&classCheck);
    
-   while(classb_inoffice > 0)
+   while(classb_inoffice > 0 )
     {
       printf("NextType : %d\n", nextType);
       pthread_cond_wait(&leave,&classCheck);
       
     }
+    while(students_since_break ==10)
+    {
+      printf("NextType : %d\n", nextType);
+      pthread_cond_wait(&pb,&classCheck);
+      
+    }
+    
+    
+    
     
     // while(classb_inoffice > 0)
     // {
     //   wait();
     // }
-      pthread_cond_signal(&join);                                             
+   
+                                                  
   //DEBUG
   printf("Class b in office is %d\n", classb_inoffice);
-  if(students_since_break == 10)
+  /*
+  while(breakTime == 1)
   {
+    
+  };
+  while(students_since_break == 10)
+  {
+    breakTime = 1;
     take_break();
   }
+  breakTime = 0;
+  */
   
+ pthread_cond_signal(&join);
   students_in_office += 1;
   students_since_break += 1;
   classa_inoffice += 1;
+  
+    
+  
+   
+   
+   
+   
  
   pthread_mutex_unlock(&classCheck);
   
@@ -307,7 +349,10 @@ void classa_enter()
  */
 void classb_enter() 
 {
-
+ if(students_since_break>=10)
+ {
+   printf("PPOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n");
+ }
  // sem_getvalue(&classB, &val2);
   //printf("Sem class B = %d\n", val2);
   /* TODO */
@@ -316,7 +361,8 @@ void classb_enter()
   /*  YOUR CODE HERE.  
    * Adding a sem wait to signify that this student in a seat                                                   */ 
   sem_wait(&seats);
-   
+  
+    printf("Student passes: %d\n", students_since_break);
   
   pthread_mutex_lock(&classCheck);
   while(classa_inoffice > 0)
@@ -324,15 +370,44 @@ void classb_enter()
       printf("NextType : %d\n", nextType);
       pthread_cond_wait(&leave,&classCheck);
     }
+    while(students_since_break ==10)
+    {
+      printf("NextType : %d\n", nextType);
+      pthread_cond_wait(&pb,&classCheck);
+      
+    }
+    
+    
   //passed = 1;
-      pthread_cond_signal(&join); 
+ 
+      
                                               
   //Debug
   printf("Class A in office is %d\n", classa_inoffice);
+  /*
+  while(breakTime == 1)
+  {
+    
+  }
+  while(students_since_break == 10)
+  {
+    breakTime = 1;
+    take_break();
+  }
+  breakTime = 0;
+  */
  // printf("Benter region classA: %d, classB: %d, flagA: %d, flagB: %d\n", classa_inoffice, classb_inoffice, classAFlag, classBFlag);
+ 
+ pthread_cond_signal(&join);
   students_in_office += 1;
   students_since_break += 1;
   classb_inoffice += 1;
+  
+    
+  
+   
+  
+   
   
   pthread_mutex_unlock(&classCheck);
   
@@ -369,8 +444,16 @@ static void classa_leave()
   {
     nextType =-1;
   }
+ // printf("Student end passes: %d\n", students_since_break);
+  if(students_since_break == 10)
+  {
+    pthread_cond_signal(&breakTime);
+    printf("Poot\n");
+  }
+  //pthread_mutex_unlock(&btime);
  // students_since_break++;
-  printf("Student passes: %d\n", students_since_break);
+  //printf("Student passes: %d\n", students_since_break);
+  
   pthread_cond_signal(&leave);
   pthread_mutex_unlock(&classCheck);
   sem_post(&seats);
@@ -400,8 +483,15 @@ static void classb_leave()
   {
     nextType =-1;
   }
+ // printf("Student end passes: %d\n", students_since_break);
+  if(students_since_break == 10)
+  {
+    pthread_cond_signal(&breakTime);
+  }
+ // pthread_mutex_unlock(&btime);
  // students_since_break++;
-  printf("Student passes: %d\n", students_since_break);
+ // printf("Student passes: %d\n", students_since_break);
+   
   pthread_cond_signal(&leave);
   pthread_mutex_unlock(&classCheck);
   sem_post(&seats);
@@ -422,8 +512,15 @@ void* classa_student(void *si)
 
   /* enter office */
   classa_enter();
-
+  
+   printf("Student since break: %d\n", students_since_break);
+   
   printf("Student %d from class A enters the office\n", s_info->student_id);
+  if(students_since_break==10)
+   {
+     printf("10th student entered\n");
+   }
+ // printf("Students in office: %d\n", students_in_office);
 
   assert(students_in_office <= MAX_SEATS && students_in_office >= 0);
   assert(classa_inoffice >= 0 && classa_inoffice <= MAX_SEATS);
@@ -441,6 +538,7 @@ void* classa_student(void *si)
   classa_leave();  
 
   printf("Student %d from class A leaves the office\n", s_info->student_id);
+  printf("Students in office: %d\n", students_in_office);
   printf("Debug: no of students in a: %d\n" , classa_inoffice);
 
   assert(students_in_office <= MAX_SEATS && students_in_office >= 0);
@@ -459,9 +557,16 @@ void* classb_student(void *si)
   student_info *s_info = (student_info*)si;
 
   /* enter office */
+  
   classb_enter();
-
+  printf("Student passes: %d\n", students_since_break);
+  
   printf("Student %d from class B enters the office\n", s_info->student_id);
+  if(students_since_break==10)
+   {
+     printf("10th student entered\n");
+   }
+ // printf("Students in office: %d\n", students_in_office);
 
   assert(students_in_office <= MAX_SEATS && students_in_office >= 0);
   assert(classb_inoffice >= 0 && classb_inoffice <= MAX_SEATS);
@@ -478,6 +583,7 @@ void* classb_student(void *si)
   classb_leave();        
 
   printf("Student %d from class B leaves the office\n", s_info->student_id);
+  printf("Students in office: %d\n", students_in_office);
 
   assert(students_in_office <= MAX_SEATS && students_in_office >= 0);
   assert(classb_inoffice >= 0 && classb_inoffice <= MAX_SEATS);
