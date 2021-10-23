@@ -1,0 +1,135 @@
+Starting officehour simulation with 21 students ...
+The professor arrived and is starting his office hours
+Seat semvalue is 3
+Class b in office is 0
+Student since break: 1
+Student 0 from class A enters the office
+A STUDENTS = 1
+Debug CLASSBINOFFICE: 0
+Student 0 from class A starts asking questions for 1 minutes
+Hello from professor
+Seat semvalue is 2
+Class b in office is 0
+Hello from professor
+Seat semvalue is 1
+Student since break: 2
+Student 1 from class A enters the office
+A STUDENTS = 2
+Debug CLASSBINOFFICE: 0
+Student 1 from class A starts asking questions for 1 minutes
+Class b in office is 0
+Student since break: 3
+Student 2 from class A enters the office
+FULL!!!
+A STUDENTS = 3
+Debug CLASSBINOFFICE: 0
+Student 2 from class A starts asking questions for 1 minutes
+Hello from professor
+Seat semvalue is 0
+Student passes: 3
+Student passes: 3
+Student passes: 3
+Student passes: 3
+Student passes: 3
+Student passes: 3
+Student passes: 3
+Student passes: 3
+Student passes: 3
+Student passes: 3
+Student 0 from class A finishes asking questions and prepares to leave
+Student 0 from class A leaves the office
+Students in office: 2
+Debug: no of students in a: 2
+Student 1 from class A finishes asking questions and prepares to leave
+Student 1 from class A leaves the office
+Students in office: 1
+Debug: no of students in a: 1
+Class b in office is 0
+Student since break: 4
+Student 3 from class A enters the office
+A STUDENTS = 4
+Debug CLASSBINOFFICE: 0
+Student 3 from class A starts asking questions for 1 minutes
+Hello from professor
+Seat semvalue is 1
+Class b in office is 0
+Student since break: 5
+Student 4 from class A enters the office
+FULL!!!
+SWITCHING!!!!!!!!!!!!!!!!!!!!!!!
+A STUDENTS = 5
+Debug CLASSBINOFFICE: 0
+Student 4 from class A starts asking questions for 1 minutes
+Hello from professor
+Seat semvalue is 0
+Student 2 from class A finishes asking questions and prepares to leave
+Student 2 from class A leaves the office
+Students in office: 2
+Debug: no of students in a: 2
+Class b in office is 0
+Student since break: 6
+Student 5 from class A enters the office
+FULL!!!
+A STUDENTS = 6
+Debug CLASSBINOFFICE: 0
+Student 5 from class A starts asking questions for 1 minutes
+Hello from professor
+Seat semvalue is 0
+Student 3 from class A finishes asking questions and prepares to leave
+Student 3 from class A leaves the office
+Students in office: 2
+Debug: no of students in a: 2
+Class b in office is 0
+Student since break: 7
+Student 6 from class A enters the office
+FULL!!!
+A STUDENTS = 7
+Debug CLASSBINOFFICE: 0
+Student 6 from class A starts asking questions for 1 minutes
+Student 4 from class A finishes asking questions and prepares to leave
+Student 4 from class A leaves the office
+Students in office: 2
+Debug: no of students in a: 2
+Hello from professor
+Seat semvalue is 1
+Student 5 from class A finishes asking questions and prepares to leave
+Student 5 from class A leaves the office
+Students in office: 1
+Debug: no of students in a: 1
+Class b in office is 0
+Student since break: 8
+Student 7 from class A enters the office
+A STUDENTS = 8
+Debug CLASSBINOFFICE: 0
+Student 7 from class A starts asking questions for 1 minutes
+Hello from professor
+Seat semvalue is 1
+Class b in office is 0
+Student since break: 9
+Student 8 from class A enters the office
+FULL!!!
+A STUDENTS = 9
+Debug CLASSBINOFFICE: 0
+Student 8 from class A starts asking questions for 1 minutes
+Hello from professor
+Seat semvalue is 0
+Student 6 from class A finishes asking questions and prepares to leave
+Student 6 from class A leaves the office
+Students in office: 2
+Debug: no of students in a: 2
+Class b in office is 0
+Student since break: 10
+Student 9 from class A enters the office
+10th student entered
+FULL!!!
+A STUDENTS = 10
+Debug CLASSBINOFFICE: 0
+Student 9 from class A starts asking questions for 1 minutes
+Hello from professor
+Hello break time!
+Student 7 from class A finishes asking questions and prepares to leave
+Student 7 from class A leaves the office
+Students in office: 2
+Debug: no of students in a: 2
+Student 8 from class A finishes asking questions and prepares to leave
+Student 8 from class A leaves the 
