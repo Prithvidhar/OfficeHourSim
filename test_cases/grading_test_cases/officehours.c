@@ -1,3 +1,7 @@
+/*
+ * Name: Prithvidhar Pudu
+ * Student ID: 1001570483 
+ */
 // Copyright (c) 2020 Trevor Bakker
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -45,8 +49,20 @@
  * Adding a semaphore to keep track of the number
  * seats available.
  * 
- * Adding a condition variable that prevents different classes from
+ * Adding a condition variable "leave" that prevents different classes from
  * being in the office at the same time.
+ * 
+ * Semaphore b is responsible for keeping students out when the 10th student
+ * enters the officeto allow the professor to take a break
+ * 
+ * The Semaphores bs and as are responsile for ensuring that after 5 consecutive students
+ * a student from the next class enters the office
+ * 
+ * The join condition is used to signal the professor to take breaks when
+ * 10 students have been in his office
+ * 
+ * The pb condition is used to prevent students from entering the functions ntil the professor 
+ * finishes his break
  */
  sem_t seats;
  sem_t b;
@@ -58,12 +74,9 @@
  pthread_mutex_t btime;
  pthread_cond_t breakTime;
  pthread_cond_t pb;
- sem_t classA;
- sem_t classB;
- //sem_t breakTime;
- static int passed = 1;
- static int first = 1;
- static int last = -1;
+ 
+ 
+ 
  static int aCount = 0;
  static int bCount = 0;
  static int switched = 0;
@@ -82,7 +95,7 @@ static int students_in_office;   /* Total numbers of students currently in the o
 static int classa_inoffice;      /* Total numbers of students from class A currently in the office */
 static int classb_inoffice;      /* Total numbers of students from class B in the office */
 static int students_since_break = 0;
-static int nextType;
+
 //static int breakTime;
 
 
@@ -105,7 +118,7 @@ static int initialize(student_info *si, char *filename)
   classa_inoffice = 0;
   classb_inoffice = 0;
   students_since_break = 0;
-  nextType = -1;
+ 
  // breakTime = 0;
 
   /* Initialize your synchronization variables (and 
@@ -115,16 +128,14 @@ static int initialize(student_info *si, char *filename)
     * Initializing my seats semaphore to a value of 3 to
     * limit the amount of students in the office
     * 
-    * Initializing my sameClass semaphore to ensure that 
-    * no two classes get mixed up
+    * Initializig the remaining semaphores based on how many students they allow to enter
+    * 
     */
     sem_init(&seats, 0, 3);
-    sem_init(&classA, 0, 1);
-    sem_init(&classB, 0, 1);
     sem_init(&b, 0 ,10);
     sem_init(&as,0, 5);
     sem_init(&bs, 0, 5);
-   // sem_init(&breakTime,0,0);
+   
     pthread_mutex_init(&classCheck,NULL);
    
     
@@ -165,6 +176,10 @@ static void take_break()
 
 /* Code for the professor thread. This is fully implemented except for synchronization
  * with the students.  See the comments within the function for details.
+ * 
+ * The professor waits on the "join" condition and when signalled checks
+ * whether 10 studenst have entered. If so, the professor takes a break and 
+ * sem posts the b semaphore to allow the students the function again
  */
 void *professorthread(void *junk) 
 {
@@ -177,29 +192,20 @@ void *professorthread(void *junk)
     pthread_mutex_lock(&classCheck);
 
     pthread_cond_wait(&join, &classCheck);
-    printf("Hello from professor\n");
-    if(aCount ==5)
-    {
-      nextType = 1;
-      switched =1;
-    }
-    else if( bCount == 5)
-    {
-      nextType = 0;
-      switched =1;
-    }
+    
+   
     if(students_since_break == 10)
     {
       
      // sem_wait(&breakTime);
      
-      printf("Hello break time!\n");
+     
       while(students_in_office >0)
       {
         pthread_cond_wait(&leave, &classCheck);
       }
       
-      printf("The real break begins\n");
+  
       
       take_break();
       int count=0;
@@ -211,63 +217,7 @@ void *professorthread(void *junk)
       
       pthread_cond_signal(&pb);
     }
-    
-      
-     /* 
-      
-      if(classa_inoffice>0)
-      {
-      
-        
-          nextType = 0;
-          pthread_cond_signal(&joinA);
-      }
-      else if(classb_inoffice > 0)
-      {
-      
-        //printf("Hello from B \n");
-          nextType = 1;
-          pthread_cond_signal(&joinB);
-        
-        
-      
-      
-      //printf("Class b in office: %d\n", classb_inoffice);
-      }
-      else
-      {
-        nextType = 0;
-      }
-      
-      else if(classa_inoffice == 0 && classb_inoffice == 0 && first ==1)
-      {
-        sem_post(&classA);
-        printf("%d\n", val);
-        first =0;
-        last  = 0;
-        //passed =0;
-      }
-      else
-      {
-      
-      
-        if(last == 0)
-        {
-          sem_post(&classB);
-          last =1;
-        }
-        else
-        {
-          sem_post(&classA);
-          last = 0;
-        }
-      }
-      */
-    
-  
-    
-   
-    
+
     pthread_mutex_unlock(&classCheck);
     
     
@@ -282,6 +232,10 @@ void *professorthread(void *junk)
 /* Code executed by a class A student to enter the office.
  * You have to implement this.  Do not delete the assert() statements,
  * but feel free to add your own.
+ * 
+ * The athread is incremented then decremented to check if they are any
+ * student A coming too the office
+ * aCount is used to keep track of consecutive students
  */
 void classa_enter() 
 {
@@ -291,13 +245,17 @@ void classa_enter()
    printf("PPOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n");
  }
   
-  //sem_getvalue(&classA, &val);
- // printf("Sem class A = %d\n", val);
+  
   /* TODO */
   /* Request permission to enter the office.  You might also want to add  */
   /* synchronization for the simulations variables below                  */
   /*  YOUR CODE HERE. 
    * Adding a sem wait to signify that this student in a seat
+   * 
+   * Class mixing is prevented by using a while loop and a condition variable that is
+   * signalled when a student leaves
+   * 
+   * The aThread varible is used to check whteher they are any remaining A students to process.
    */   
   // sem_get
    sem_wait(&as);
@@ -305,15 +263,14 @@ void classa_enter()
    
    sem_wait(&seats);
     
-   //sem_wait(&classA);
-   //passed = 1;
+   
    sem_wait(&b);
   
    pthread_mutex_lock(&classCheck);
    
-   while((classb_inoffice > 0 ) || nextType == 1)
+   while((classb_inoffice > 0 ))
     {
-      printf("NextType : %d\n", nextType);
+      
       pthread_cond_wait(&leave,&classCheck);
       
       
@@ -321,37 +278,18 @@ void classa_enter()
     athread--;
     while(students_since_break ==10)
     {
-      printf("NextType : %d\n", nextType);
+      
       pthread_cond_wait(&pb,&classCheck);
-      printf("SSSSS: %d\n", students_in_office);
+     
       
     }
    
-   // bCount =0;
-    
-    
- 
-    // while(classb_inoffice > 0)
-    // {
-    //   wait();
-    // }
+  
    
                                                   
-  //DEBUG
-  printf("Class b in office is %d\n", classb_inoffice);
-  /*
-  while(breakTime == 1)
-  {
-    
-  };
-  while(students_since_break == 10)
-  {
-    breakTime = 1;
-    take_break();
-  }
-  breakTime = 0;
-  */
- aCount++;
+  
+  aCount++;
+
  pthread_cond_signal(&join);
   students_in_office += 1;
   students_since_break += 1;
@@ -367,9 +305,7 @@ void classa_enter()
  
   pthread_mutex_unlock(&classCheck);
   
-  //nextType=0;
-  //pthread_cond_signal(&prof);
-  
+ 
   
   
   
@@ -383,58 +319,44 @@ void classa_enter()
 void classb_enter() 
 {
  
- // sem_getvalue(&classB, &val2);
-  //printf("Sem class B = %d\n", val2);
+ 
   /* TODO */
   /* Request permission to enter the office.  You might also want to add  */
   /* synchronization for the simulations variables below                  */
   /*  YOUR CODE HERE.  
    * Adding a sem wait to signify that this student in a seat  
+   * bthread is incremented to keep track of b students coming to office
+   * bCount keeps track of consecutive students
    *                                                  */ 
    bthread++;
    sem_wait(&bs);
  
   sem_wait(&seats);
 
-    printf("Student passes: %d\n", students_since_break);
+   
     sem_wait(&b);
   
   pthread_mutex_lock(&classCheck);
-  while((classa_inoffice > 0) || nextType == 0)
+  while((classa_inoffice > 0))
     {
-      //printf("NextType : %d\n", nextType);
+      
       pthread_cond_wait(&leave,&classCheck);
     }
     bthread--;
     while(students_since_break ==10)
     {
-      printf("NextType : %d\n", nextType);
+      
       pthread_cond_wait(&pb,&classCheck);
-       printf("SSSSS: %d\n", students_in_office);
+       
       
     }
    
-  //aCount =0;
-    
-  //passed = 1;
+  
  
       
                                               
-  //Debug
-  printf("Class A in office is %d\n", classa_inoffice);
-  /*
-  while(breakTime == 1)
-  {
-    
-  }
-  while(students_since_break == 10)
-  {
-    breakTime = 1;
-    take_break();
-  }
-  breakTime = 0;
-  */
- // printf("Benter region classA: %d, classB: %d, flagA: %d, flagB: %d\n", classa_inoffice, classb_inoffice, classAFlag, classBFlag);
+  
+ 
   bCount++;
  pthread_cond_signal(&join);
   students_in_office += 1;
@@ -468,6 +390,12 @@ static void ask_questions(int t)
 /* Code executed by a class A student when leaving the office.
  * You need to implement this.  Do not delete the assert() statements,
  * but feel free to add as many of your own as you like.
+ * 
+ * The bthread if condition allows students to pass through sem as if
+ * there are no Student A incoming
+ * 
+ * The while loop is responsible for sem posting the bs semaphore to allow
+ * the b students to enter
  */
 static void classa_leave() 
 {
@@ -481,18 +409,9 @@ static void classa_leave()
   students_in_office -= 1;
   classa_inoffice -= 1;
   
- // printf("Student end passes: %d\n", students_since_break);
-  
-  //pthread_mutex_unlock(&btime);
- // students_since_break++;
-  //printf("Student passes: %d\n", students_since_break);
-  if(classa_inoffice == 0 && aCount != 5)
-  {
-    nextType = -1;
-    switched =0;
+
   
  
-  }
   if(bthread==0)
   {
     sem_post(&as);
@@ -503,7 +422,8 @@ static void classa_leave()
     sem_post(&bs);
     count++;
   }
-   bCount = 0;
+  bCount  = 0;
+   
    
   pthread_cond_signal(&leave);
   pthread_mutex_unlock(&classCheck);
@@ -518,6 +438,10 @@ static void classa_leave()
 /* Code executed by a class B student when leaving the office.
  * You need to implement this.  Do not delete the assert() statements,
  * but feel free to add as many of your own as you like.
+ * 
+ * The athread if condition allows b students to pass if no Student As are incoming
+ * 
+ * The while loop allows the A students to pass through the sem as.
  */
 static void classb_leave() 
 {
@@ -531,17 +455,8 @@ static void classb_leave()
   students_in_office -= 1;
   classb_inoffice -= 1;
  
- // printf("Student end passes: %d\n", students_since_break);
-  
- // pthread_mutex_unlock(&btime);
- // students_since_break++;
- // printf("Student passes: %d\n", students_since_break);
- if(classb_inoffice == 0)
-  {
-    nextType = -1;
-     
  
-  }
+
   if(athread==0)
   {
     sem_post(&bs);
@@ -552,7 +467,8 @@ static void classb_leave()
     sem_post(&as);
     count++;
   }
-  aCount = 0;
+  aCount= 0;
+ 
    
   pthread_cond_signal(&leave);
   pthread_mutex_unlock(&classCheck);
@@ -575,29 +491,17 @@ void* classa_student(void *si)
   /* enter office */
   classa_enter();
   
-   printf("Student since break: %d\n", students_since_break);
+   
    
   printf("Student %d from class A enters the office\n", s_info->student_id);
-  if(students_since_break==10)
-   {
-     printf("10th student entered\n");
-   }
-   if(students_in_office==3)
-   {
-     printf("FULL!!!\n");
-   }
-   if(aCount == 5)
-   {
-     printf("SWITCHING!!!!!!!!!!!!!!!!!!!!!!!\n");
-   }
-   printf("A STUDENTS = %d\n",aCount);
+
   
 
   assert(students_in_office <= MAX_SEATS && students_in_office >= 0);
   assert(classa_inoffice >= 0 && classa_inoffice <= MAX_SEATS);
   assert(classb_inoffice >= 0 && classb_inoffice <= MAX_SEATS);
-  //DEBUG
-  printf("Debug CLASSBINOFFICE: %d\n", classb_inoffice);
+ 
+  
   assert(classb_inoffice == 0 );
   
   /* ask questions  --- do not make changes to the 3 lines below*/
@@ -609,8 +513,7 @@ void* classa_student(void *si)
   classa_leave();  
 
   printf("Student %d from class A leaves the office\n", s_info->student_id);
-  printf("Students in office: %d\n", students_in_office);
-  printf("Debug: no of students in a: %d\n" , classa_inoffice);
+ 
 
   assert(students_in_office <= MAX_SEATS && students_in_office >= 0);
   assert(classb_inoffice >= 0 && classb_inoffice <= MAX_SEATS);
@@ -630,19 +533,10 @@ void* classb_student(void *si)
   /* enter office */
   
   classb_enter();
-  printf("Student passes: %d\n", students_since_break);
+ 
   
   printf("Student %d from class B enters the office\n", s_info->student_id);
-  if(students_since_break==10)
-   {
-     printf("10th student entered\n");
-   }
-   if(students_in_office==3)
-   {
-     printf("FULL!!!\n");
-   }
- // printf("Students in office: %d\n", students_in_office);
- printf("B STUDENTS = %d\n",bCount);
+  
 
   assert(students_in_office <= MAX_SEATS && students_in_office >= 0);
   assert(classb_inoffice >= 0 && classb_inoffice <= MAX_SEATS);
@@ -659,7 +553,7 @@ void* classb_student(void *si)
   classb_leave();        
 
   printf("Student %d from class B leaves the office\n", s_info->student_id);
-  printf("Students in office: %d\n", students_in_office);
+ 
 
   assert(students_in_office <= MAX_SEATS && students_in_office >= 0);
   assert(classb_inoffice >= 0 && classb_inoffice <= MAX_SEATS);
